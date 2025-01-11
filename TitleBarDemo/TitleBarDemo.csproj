@@ -42,6 +42,8 @@
 	   <CodesignKey>Apple Distribution: Pavlo Konoshchenko (HYV7Z7G6FK)</CodesignKey>
 	   <CodesignProvision>yaropako</CodesignProvision>
 	   <IpaPackage>True</IpaPackage>
+ 	   <MtouchUseLlvm>False</MtouchUseLlvm>
+	   <AotAssemblies>True</AotAssemblies>
 	 </PropertyGroup>
 
 	<ItemGroup>
