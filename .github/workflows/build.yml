@@ -65,11 +65,13 @@ jobs:
 
     - name: Build
       run: |
-        dotnet build TitleBarDemo/TitleBarDemo.csproj -c Release -f net9.0-ios \
+        dotnet publish TitleBarDemo/TitleBarDemo.csproj -c Release -f net9.0-ios \
           /p:CodesignKey="Apple Distribution: Pavlo Konoshchenko (HYV7Z7G6FK)" \
           /p:ProvisioningProfile="yaropako" \
           /p:TeamId="HYV7Z7G6FK" \
           /p:RuntimeIdentifier=ios-arm64
+          /p:PublishTrimmed=false \
+          /p:MtouchLink=None
 
     - name: Archive .IPA
       run: |
