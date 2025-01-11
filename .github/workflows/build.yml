@@ -1,0 +1,84 @@
+name: Build App iOS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      build_configuration:
+        description: 'Build configuration (Debug/Release)'
+        default: 'Release'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Select Xcode 16.2
+      run: sudo xcode-select -switch /Applications/Xcode_16.2.app/Contents/Developer
+
+    - name: List Installed Xcode Versions
+      run: ls /Applications
+
+    - name: Cache .NET and MAUI workloads
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.nuget/packages
+          ~/.dotnet/sdk
+          ~/.dotnet/workloads
+        key: ${{ runner.os }}-dotnet-maui-${{ hashFiles('**/global.json') }}-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-dotnet-maui-
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Install .NET MAUI Workloads
+      run: |
+        dotnet workload install maui-ios
+        dotnet workload install maui-android
+        
+    - name: Install Apple Certificate
+      run: |
+        security unlock-keychain -p "" ~/Library/Keychains/login.keychain
+        security import ./certificate.p12 -k ~/Library/Keychains/login.keychain -P "Vfcnth2Kfvfcnth" -T /usr/bin/codesign
+        security find-identity -v -p codesigning
+
+    - name: Install Provisioning Profile
+      run: |
+        mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+        cp yaropako.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+
+    - name: Debug SDK Versions
+      run: xcodebuild -showsdks
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: |
+        dotnet build TitleBarDemo/TitleBarDemo.csproj -c Release -f net9.0-ios \
+          /p:CodesignKey="Apple Distribution: Pavlo Konoshchenko (HYV7Z7G6FK)" \
+          /p:ProvisioningProfile="yaropako" \
+          /p:TeamId="HYV7Z7G6FK" \
+          /p:RuntimeIdentifier=ios-arm64
+
+    - name: Archive .IPA
+      run: |
+        dotnet publish TitleBarDemo/TitleBarDemo.csproj -f net9.0-ios -c Release \
+          /p:ArchiveOnBuild=true \
+          /p:RuntimeIdentifier=ios-arm64
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        path: |
+          bin/Release/net9.0-ios/ios-arm64/*.ipa
